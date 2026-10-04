@@ -1,0 +1,15 @@
+# --- simulation artifacts -------------------------------------------------
+xsim/xsim.dir/
+xsim/dump/
+xsim/.Xil/
+*.log
+*.jou
+*.pb
+*.wdb
+*.str
+webtalk*
+
+# --- editor / OS ----------------------------------------------------------
+*.swp
+*~
+.DS_Store
