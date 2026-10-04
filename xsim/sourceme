@@ -1,13 +1,31 @@
 # source this file, do not execute it
 #   source sourceme
 
-VIVADO_ROOT=/home/hrsc/env        # 환경에 맞게 수정
-source "$VIVADO_ROOT/settings64.sh"
+# ---- Vivado --------------------------------------------------------------
+# 환경에 맞게 수정.  흔한 위치: /tools/Xilinx/... , /opt/Xilinx/...
+VIVADO_ROOT=/home/hrsc/env
 
-# keep large waveform dumps off the repo disk
+if [ -f "$VIVADO_ROOT/vivado_2024.2.sh" ]; then
+  source "$VIVADO_ROOT/vivado_2024.2.sh"
+elif command -v vivado >/dev/null 2>&1; then
+  echo "note : VIVADO_ROOT not found, using vivado already on PATH"
+else
+  echo "ERROR: Vivado not found - fix VIVADO_ROOT in sourceme" >&2
+fi
+
+# ---- waveform dump -------------------------------------------------------
+# 공용 스크래치 영역이 있으면 거기에, 없으면 로컬에 둔다.
+# .wdb 파일이 수백 MB까지 커질 수 있어 repo 디스크와 분리하는 것이 목적.
 DUMP_ROOT="/dump/$USER/pro-a-sgdma/xsim"
-mkdir -p "$DUMP_ROOT"
-[ -e ./dump ] || ln -s "$DUMP_ROOT" ./dump
 
-echo "Vivado : $(which vivado)"
+if mkdir -p "$DUMP_ROOT" 2>/dev/null; then
+  rm -f ./dump                      # 깨진 심볼릭 링크 정리
+  ln -sfn "$DUMP_ROOT" ./dump
+else
+  echo "note : /dump unavailable - using local ./dump"
+  rm -f ./dump                      # 심볼릭 링크였다면 제거
+  mkdir -p ./dump
+fi
+
+echo "Vivado : $(command -v vivado)"
 echo "dump   : $(readlink -f ./dump)"
