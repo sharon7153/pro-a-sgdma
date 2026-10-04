@@ -1,0 +1,13 @@
+# source this file, do not execute it
+#   source sourceme
+
+VIVADO_ROOT=/home/hrsc/env        # 환경에 맞게 수정
+source "$VIVADO_ROOT/settings64.sh"
+
+# keep large waveform dumps off the repo disk
+DUMP_ROOT="/dump/$USER/pro-a-sgdma/xsim"
+mkdir -p "$DUMP_ROOT"
+[ -e ./dump ] || ln -s "$DUMP_ROOT" ./dump
+
+echo "Vivado : $(which vivado)"
+echo "dump   : $(readlink -f ./dump)"
