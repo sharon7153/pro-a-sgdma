@@ -12,6 +12,11 @@
 //     - m_dest_axi_* : AXI4 master, write-only (destination data)
 //     - m_sg_axi_*   : AXI4 master, read-only  (descriptor fetch, 64-bit fixed)
 //     - irq
+//
+//   AXI ID / LOCK are brought out on every master port so the interface is a
+//   complete AXI4 master and can sit behind an interconnect.  Only the channels
+//   this configuration uses are exposed; the unused direction of each port is
+//   still tied off internally.
 // ============================================================================
 `timescale 1ns/1ps
 `default_nettype none
@@ -22,7 +27,8 @@ module sg_dma_top #(
   parameter DATA_WIDTH          = 64,
   parameter LENGTH_WIDTH        = 24,
   parameter MAX_BYTES_PER_BURST = 128,
-  parameter FIFO_SIZE           = 8     // in bursts
+  parameter FIFO_SIZE           = 8,    // in bursts
+  parameter AXI_ID_WIDTH        = 1
 ) (
   input  wire                     clk,
   input  wire                     resetn,
@@ -63,10 +69,13 @@ module sg_dma_top #(
   output wire [1:0]               m_src_axi_arburst,
   output wire [2:0]               m_src_axi_arprot,
   output wire [3:0]               m_src_axi_arcache,
+  output wire [AXI_ID_WIDTH-1:0]  m_src_axi_arid,
+  output wire [0:0]               m_src_axi_arlock,
   input  wire                     m_src_axi_rvalid,
   output wire                     m_src_axi_rready,
   input  wire [DATA_WIDTH-1:0]    m_src_axi_rdata,
   input  wire [1:0]               m_src_axi_rresp,
+  input  wire [AXI_ID_WIDTH-1:0]  m_src_axi_rid,
   input  wire                     m_src_axi_rlast,
 
   // --------------------------------------------------------------------------
@@ -80,6 +89,8 @@ module sg_dma_top #(
   output wire [1:0]               m_dest_axi_awburst,
   output wire [2:0]               m_dest_axi_awprot,
   output wire [3:0]               m_dest_axi_awcache,
+  output wire [AXI_ID_WIDTH-1:0]  m_dest_axi_awid,
+  output wire [0:0]               m_dest_axi_awlock,
   output wire                     m_dest_axi_wvalid,
   input  wire                     m_dest_axi_wready,
   output wire [DATA_WIDTH-1:0]    m_dest_axi_wdata,
@@ -88,6 +99,7 @@ module sg_dma_top #(
   input  wire                     m_dest_axi_bvalid,
   output wire                     m_dest_axi_bready,
   input  wire [1:0]               m_dest_axi_bresp,
+  input  wire [AXI_ID_WIDTH-1:0]  m_dest_axi_bid,
 
   // --------------------------------------------------------------------------
   // AXI4 master (read-only) : SG descriptor fetch (data width fixed to 64)
@@ -100,10 +112,13 @@ module sg_dma_top #(
   output wire [1:0]               m_sg_axi_arburst,
   output wire [2:0]               m_sg_axi_arprot,
   output wire [3:0]               m_sg_axi_arcache,
+  output wire [AXI_ID_WIDTH-1:0]  m_sg_axi_arid,
+  output wire [0:0]               m_sg_axi_arlock,
   input  wire                     m_sg_axi_rvalid,
   output wire                     m_sg_axi_rready,
   input  wire [63:0]              m_sg_axi_rdata,
   input  wire [1:0]               m_sg_axi_rresp,
+  input  wire [AXI_ID_WIDTH-1:0]  m_sg_axi_rid,
   input  wire                     m_sg_axi_rlast
 );
 
@@ -136,9 +151,9 @@ module sg_dma_top #(
     .DMA_AXI_ADDR_WIDTH      (ADDR_WIDTH),
     .MAX_BYTES_PER_BURST     (MAX_BYTES_PER_BURST),
     .FIFO_SIZE               (FIFO_SIZE),
-    .AXI_ID_WIDTH_SRC        (1),
-    .AXI_ID_WIDTH_DEST       (1),
-    .AXI_ID_WIDTH_SG         (1),
+    .AXI_ID_WIDTH_SRC        (AXI_ID_WIDTH),
+    .AXI_ID_WIDTH_DEST       (AXI_ID_WIDTH),
+    .AXI_ID_WIDTH_SG         (AXI_ID_WIDTH),
     .DISABLE_DEBUG_REGISTERS (0),
     .ENABLE_DIAGNOSTICS_IF   (0),
     .ALLOW_ASYM_MEM          (0),
@@ -185,8 +200,8 @@ module sg_dma_top #(
     .m_dest_axi_awcache (m_dest_axi_awcache),
     .m_dest_axi_awvalid (m_dest_axi_awvalid),
     .m_dest_axi_awready (m_dest_axi_awready),
-    .m_dest_axi_awid    (),
-    .m_dest_axi_awlock  (),
+    .m_dest_axi_awid    (m_dest_axi_awid),
+    .m_dest_axi_awlock  (m_dest_axi_awlock),
     .m_dest_axi_wdata   (m_dest_axi_wdata),
     .m_dest_axi_wstrb   (m_dest_axi_wstrb),
     .m_dest_axi_wready  (m_dest_axi_wready),
@@ -196,7 +211,7 @@ module sg_dma_top #(
     .m_dest_axi_bvalid  (m_dest_axi_bvalid),
     .m_dest_axi_bresp   (m_dest_axi_bresp),
     .m_dest_axi_bready  (m_dest_axi_bready),
-    .m_dest_axi_bid     (1'b0),
+    .m_dest_axi_bid     (m_dest_axi_bid),
     // DEST read channel: unused
     .m_dest_axi_arvalid (),
     .m_dest_axi_araddr  (),
@@ -212,7 +227,7 @@ module sg_dma_top #(
     .m_dest_axi_rready  (),
     .m_dest_axi_arid    (),
     .m_dest_axi_arlock  (),
-    .m_dest_axi_rid     (1'b0),
+    .m_dest_axi_rid     ({AXI_ID_WIDTH{1'b0}}),
     .m_dest_axi_rlast   (1'b0),
 
     // ---------------- SRC master (read used) ----------------
@@ -226,13 +241,13 @@ module sg_dma_top #(
     .m_src_axi_arburst  (m_src_axi_arburst),
     .m_src_axi_arprot   (m_src_axi_arprot),
     .m_src_axi_arcache  (m_src_axi_arcache),
-    .m_src_axi_arid     (),
-    .m_src_axi_arlock   (),
+    .m_src_axi_arid     (m_src_axi_arid),
+    .m_src_axi_arlock   (m_src_axi_arlock),
     .m_src_axi_rdata    (m_src_axi_rdata),
     .m_src_axi_rready   (m_src_axi_rready),
     .m_src_axi_rvalid   (m_src_axi_rvalid),
     .m_src_axi_rresp    (m_src_axi_rresp),
-    .m_src_axi_rid      (1'b0),
+    .m_src_axi_rid      (m_src_axi_rid),
     .m_src_axi_rlast    (m_src_axi_rlast),
     // SRC write channel: unused
     .m_src_axi_awvalid  (),
@@ -254,7 +269,7 @@ module sg_dma_top #(
     .m_src_axi_awid     (),
     .m_src_axi_awlock   (),
     .m_src_axi_wid      (),
-    .m_src_axi_bid      (1'b0),
+    .m_src_axi_bid      ({AXI_ID_WIDTH{1'b0}}),
 
     // ---------------- SG master (read used) ----------------
     .m_sg_axi_aclk      (clk),
@@ -267,13 +282,13 @@ module sg_dma_top #(
     .m_sg_axi_arburst   (m_sg_axi_arburst),
     .m_sg_axi_arprot    (m_sg_axi_arprot),
     .m_sg_axi_arcache   (m_sg_axi_arcache),
-    .m_sg_axi_arid      (),
-    .m_sg_axi_arlock    (),
+    .m_sg_axi_arid      (m_sg_axi_arid),
+    .m_sg_axi_arlock    (m_sg_axi_arlock),
     .m_sg_axi_rdata     (m_sg_axi_rdata),
     .m_sg_axi_rready    (m_sg_axi_rready),
     .m_sg_axi_rvalid    (m_sg_axi_rvalid),
     .m_sg_axi_rresp     (m_sg_axi_rresp),
-    .m_sg_axi_rid       (1'b0),
+    .m_sg_axi_rid       (m_sg_axi_rid),
     .m_sg_axi_rlast     (m_sg_axi_rlast),
     // SG write channel: unused
     .m_sg_axi_awvalid   (),
@@ -295,7 +310,7 @@ module sg_dma_top #(
     .m_sg_axi_awid      (),
     .m_sg_axi_awlock    (),
     .m_sg_axi_wid       (),
-    .m_sg_axi_bid       (1'b0),
+    .m_sg_axi_bid       ({AXI_ID_WIDTH{1'b0}}),
 
     // ---------------- AXI-Stream slave: unused ----------------
     .s_axis_aclk        (clk),
