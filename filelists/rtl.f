@@ -1,18 +1,11 @@
-../rtl/third_party/adi_hdl/library/util_cdc/sync_bits.v
-../rtl/third_party/adi_hdl/library/util_cdc/sync_data.v
-../rtl/third_party/adi_hdl/library/util_cdc/sync_event.v
-../rtl/third_party/adi_hdl/library/util_cdc/sync_gray.v
-../rtl/third_party/adi_hdl/library/common/ad_mem.v
-../rtl/third_party/adi_hdl/library/common/ad_mem_asym.v
-../rtl/third_party/adi_hdl/library/common/up_axi.v
-../rtl/third_party/adi_hdl/library/util_axis_fifo/util_axis_fifo_address_generator.v
-../rtl/third_party/adi_hdl/library/util_axis_fifo/util_axis_fifo.v
+-i ../rtl/third_party/adi_hdl/library/axi_dmac
+../rtl/sg_dma/sgdma_top.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/address_generator.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/axi_dmac_burst_memory.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/axi_dmac_ext_sync.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/axi_dmac_framelock.v
-../rtl/third_party/adi_hdl/library/axi_dmac/axi_dmac_regmap.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/axi_dmac_regmap_request.v
+../rtl/third_party/adi_hdl/library/axi_dmac/axi_dmac_regmap.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/axi_dmac_reset_manager.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/axi_dmac_resize_dest.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/axi_dmac_resize_src.v
@@ -34,4 +27,12 @@
 ../rtl/third_party/adi_hdl/library/axi_dmac/src_axi_mm.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/src_axi_stream.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/src_fifo_inf.v
-../rtl/sg_dma/sgdma_top.v
+../rtl/third_party/adi_hdl/library/common/ad_mem_asym.v
+../rtl/third_party/adi_hdl/library/common/ad_mem.v
+../rtl/third_party/adi_hdl/library/common/up_axi.v
+../rtl/third_party/adi_hdl/library/util_axis_fifo/util_axis_fifo_address_generator.v
+../rtl/third_party/adi_hdl/library/util_axis_fifo/util_axis_fifo.v
+../rtl/third_party/adi_hdl/library/util_cdc/sync_bits.v
+../rtl/third_party/adi_hdl/library/util_cdc/sync_data.v
+../rtl/third_party/adi_hdl/library/util_cdc/sync_event.v
+../rtl/third_party/adi_hdl/library/util_cdc/sync_gray.v
