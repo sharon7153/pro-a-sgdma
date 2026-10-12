@@ -9,8 +9,10 @@
 //   SAN-004 : Single descriptor copy     (4 checks)
 //   SAN-005 : 3-descriptor gather        (6 checks)
 //   SAN-006 : IRQ & status               (7 checks)
+//   ----------------------------------------------
+//   Total                               (46 checks)
 //
-//   Ref  : SGDMA-SANITY-v0.2, SGDMA-SFR-v0.2
+//   Ref  : SGDMA-SANITY-v1.0, SGDMA-SFR-v1.0
 //   Exit : non-zero on any failure (regression gate)
 // ============================================================================
 `timescale 1ns/1ps
@@ -23,46 +25,47 @@ module tb_sg_dma;
   localparam int IDW = 1;    // AXI_ID_WIDTH
 
   // ---------------- register map (byte address) ----------------
-  localparam logic [10:0] REG_VERSION          = 11'h000;
-  localparam logic [10:0] REG_PERIPHERAL_ID    = 11'h004;
-  localparam logic [10:0] REG_SCRATCH          = 11'h008;
-  localparam logic [10:0] REG_IDENTIFICATION   = 11'h00C;
-  localparam logic [10:0] REG_INTERFACE_DESCRIPTION_1   = 11'h010;
-  localparam logic [10:0] REG_INTERFACE_DESCRIPTION_2       = 11'h014;
-  localparam logic [10:0] REG_IRQ_MASK         = 11'h080;
-  localparam logic [10:0] REG_IRQ_PENDING      = 11'h084;
-  localparam logic [10:0] REG_IRQ_SOURCE       = 11'h088;
-  localparam logic [10:0] REG_CONTROL          = 11'h400;
-  localparam logic [10:0] REG_TRANSFER_ID      = 11'h404;
-  localparam logic [10:0] REG_TRANSFER_SUBMIT  = 11'h408;
-  localparam logic [10:0] REG_FLAGS            = 11'h40C;
-  localparam logic [10:0] REG_DEST_ADDRESS     = 11'h410;
-  localparam logic [10:0] REG_SRC_ADDRESS      = 11'h414;
-  localparam logic [10:0] REG_X_LENGTH         = 11'h418;
-  localparam logic [10:0] REG_Y_LENGTH         = 11'h41C;
-  localparam logic [10:0] REG_TRANSFER_DONE    = 11'h428;
-  localparam logic [10:0] REG_DESCRIPTOR_ID    = 11'h454;
-  localparam logic [10:0] REG_FRAMELOCK_CONFIG = 11'h458;
-  localparam logic [10:0] REG_SG_ADDRESS       = 11'h47C;
-  localparam logic [10:0] REG_DEST_ADDR_HIGH   = 11'h490;
-  localparam logic [10:0] REG_SRC_ADDR_HIGH    = 11'h494;
-  localparam logic [10:0] REG_SG_ADDR_HIGH     = 11'h4BC;
-  localparam logic [10:0] REG_UNMAPPED_A       = 11'h0F0;
-  localparam logic [10:0] REG_UNMAPPED_B       = 11'h600;
+  localparam logic [10:0] REG_VERSION                 = 11'h000;
+  localparam logic [10:0] REG_PERIPHERAL_ID           = 11'h004;
+  localparam logic [10:0] REG_SCRATCH                 = 11'h008;
+  localparam logic [10:0] REG_IDENTIFICATION          = 11'h00C;
+  localparam logic [10:0] REG_INTERFACE_DESCRIPTION_1 = 11'h010;
+  localparam logic [10:0] REG_INTERFACE_DESCRIPTION_2 = 11'h014;
+  localparam logic [10:0] REG_IRQ_MASK                = 11'h080;
+  localparam logic [10:0] REG_IRQ_PENDING             = 11'h084;
+  localparam logic [10:0] REG_IRQ_SOURCE              = 11'h088;
+  localparam logic [10:0] REG_CONTROL                 = 11'h400;
+  localparam logic [10:0] REG_TRANSFER_ID             = 11'h404;
+  localparam logic [10:0] REG_TRANSFER_SUBMIT         = 11'h408;
+  localparam logic [10:0] REG_FLAGS                   = 11'h40C;
+  localparam logic [10:0] REG_DEST_ADDRESS            = 11'h410;
+  localparam logic [10:0] REG_SRC_ADDRESS             = 11'h414;
+  localparam logic [10:0] REG_X_LENGTH                = 11'h418;
+  localparam logic [10:0] REG_Y_LENGTH                = 11'h41C;
+  localparam logic [10:0] REG_TRANSFER_DONE           = 11'h428;
+  localparam logic [10:0] REG_DESCRIPTOR_ID           = 11'h454;
+  localparam logic [10:0] REG_FRAMELOCK_CONFIG        = 11'h458;
+  localparam logic [10:0] REG_SG_ADDRESS              = 11'h47C;
+  localparam logic [10:0] REG_DEST_ADDR_HIGH          = 11'h490;
+  localparam logic [10:0] REG_SRC_ADDR_HIGH           = 11'h494;
+  localparam logic [10:0] REG_SG_ADDR_HIGH            = 11'h4BC;
+  localparam logic [10:0] REG_UNMAPPED_A              = 11'h0F0;
+  localparam logic [10:0] REG_UNMAPPED_B              = 11'h600;
 
-  // ---------------- expected values (SGDMA-SFR-v0.2) ----------------
-  localparam logic [31:0] EXP_VERSION        = 32'h0004_0565;
-  localparam logic [31:0] EXP_IDENTIFICATION = 32'h444D_4143;   // "DMAC"
-  // sgdma_top does not override the ID parameter -> defaults to 0.  [TO CONFIRM]
-  localparam logic [31:0] EXP_PERIPHERAL_ID  = 32'h0000_0000;
-  localparam logic [31:0] EXP_INTERFACE_DESCRIPTION_1 = 32'h3807_0303;   // measured 2026-10-01
-  // AXI_AXCACHE / AXI_AXPROT are not overridden by sgdma_top, so axi_dmac's
-  // own defaults apply - which differ from axi_dmac_regmap's local defaults.
-  // Measured 0x00000000 => AXCACHE = 4'b0000 (Device Non-bufferable).
-  // [TO CONFIRM] 4'b0011 (Normal Non-cacheable Bufferable) is the usual choice
-  // for an MM->MM DMA; this is a design decision, not a TB expectation.
-  localparam logic [31:0] EXP_INTERFACE_DESCRIPTION_2     = 32'h0000_0000;
-  localparam logic [31:0] EXP_FLAGS_RESET    = 32'h0000_0002;   // LAST defaults to 1
+  // ---------------- expected values (SGDMA-SFR-v1.0) ----------------
+  localparam logic [31:0] EXP_VERSION                 = 32'h0004_0565;
+  localparam logic [31:0] EXP_IDENTIFICATION          = 32'h444D_4143;  // "DMAC"
+  // sgdma_top passes ID = 0 (wrapper parameter default) to axi_dmac.
+  localparam logic [31:0] EXP_PERIPHERAL_ID           = 32'h0000_0000;
+  localparam logic [31:0] EXP_INTERFACE_DESCRIPTION_1 = 32'h3807_0303;  // measured 2026-10-01
+  // AXI_AXCACHE = 4'b0000 (Device Non-bufferable), AXI_AXPROT = 3'b000.
+  // Explicitly specified in sgdma_top as of 2026-10-06 (team decision); before
+  // that they relied on axi_dmac's own defaults and measured the same value.
+  // NOTE: axi_dmac_regmap declares a LOCAL default of 4'b0011 - do NOT compute
+  // the expected value from that file.  Two independent reviews did exactly
+  // that, both got 0x30, and both were wrong.
+  localparam logic [31:0] EXP_INTERFACE_DESCRIPTION_2 = 32'h0000_0000;
+  localparam logic [31:0] EXP_FLAGS_RESET             = 32'h0000_0002;  // LAST defaults to 1
 
   // ---------------- clock / reset ----------------
   logic clk    = 1'b0;
@@ -399,9 +402,9 @@ module tb_sg_dma;
     check_eq("IDENTIFICATION", rd, EXP_IDENTIFICATION);
     if (rd !== EXP_IDENTIFICATION) bus_ok = 1'b0;
 
-    check_reg("PERIPHERAL_ID",         REG_PERIPHERAL_ID,  EXP_PERIPHERAL_ID);
+    check_reg("PERIPHERAL_ID",           REG_PERIPHERAL_ID,           EXP_PERIPHERAL_ID);
     check_reg("INTERFACE_DESCRIPTION_1", REG_INTERFACE_DESCRIPTION_1, EXP_INTERFACE_DESCRIPTION_1);
-    check_reg("INTERFACE_DESCRIPTION_2",            REG_INTERFACE_DESCRIPTION_2,     EXP_INTERFACE_DESCRIPTION_2);
+    check_reg("INTERFACE_DESCRIPTION_2", REG_INTERFACE_DESCRIPTION_2, EXP_INTERFACE_DESCRIPTION_2);
 
     if (cur_fail != 0 && bus_ok) begin
       $display("    note : build-configuration register mismatch - confirm the");
@@ -428,6 +431,10 @@ module tb_sg_dma;
   // ==========================================================================
   // SAN-003 : Reset defaults
   //   Must run before any register in this list is written.
+  //
+  //   Covers 10 of the ~30 registers listed in SFR map appendix A.  The rest
+  //   are intentionally left to the verification team (SOR RST-007).  Do not
+  //   read this TC as proof that every reset value has been checked.
   // ==========================================================================
   task automatic san_003();
     tc_begin("SAN-003", "Reset defaults");
@@ -448,6 +455,13 @@ module tb_sg_dma;
   // SAN-007 : Parameter-masked bits
   //   Bits deliberately disabled by build parameters must stay disabled.
   //   Restores every register it touches before returning.
+  //
+  //   The purpose is NOT bug detection but misjudgement prevention: without a
+  //   documented expected value, a naive "RW register write / read-back" test
+  //   reports this correct behaviour as a defect.
+  //
+  //   0x450 (PARTIAL_TRANSFER_ID) is deliberately NOT read here - a read pops
+  //   the internal FIFO.  See SFR map 4.5.5.
   // ==========================================================================
   task automatic san_007();
     logic [31:0] ra, rb;
@@ -533,13 +547,13 @@ module tb_sg_dma;
   // SAN-005 : 3-descriptor gather
   // ==========================================================================
   task automatic san_005();
-    bit [31:0] src [3] = '{32'h0001_1000, 32'h0001_3000, 32'h0001_5000};
-    int        len [3] = '{128, 256, 64};
-    bit [31:0] desc[3] = '{32'h0000_1100, 32'h0000_1140, 32'h0000_1180};
-    bit [31:0] dst_base = 32'h0002_1000;
-    bit [31:0] dst[3];
-    bit [31:0] total;
-    bit        t;
+    bit [31:0]   src [3] = '{32'h0001_1000, 32'h0001_3000, 32'h0001_5000};
+    int          len [3] = '{128, 256, 64};
+    bit [31:0]   desc[3] = '{32'h0000_1100, 32'h0000_1140, 32'h0000_1180};
+    bit [31:0]   dst_base = 32'h0002_1000;
+    bit [31:0]   dst[3];
+    bit [31:0]   total;
+    bit          t;
     logic [31:0] rd;
 
     tc_begin("SAN-005", "3-descriptor chain, gather");
@@ -564,9 +578,14 @@ module tb_sg_dma;
       check_copy(src[i], dst[i], len[i], $sformatf("seg%0d", i));
     check_untouched(dst_base + total, 16, "tail");
 
-    // The SG completion FIFO holds its last popped entry once empty, so after
-    // the chain finishes this reads the id of the last completed descriptor.
-    // Measured with a 3-descriptor chain; see SFR map 4.6.2 - not a contract.
+    // DESCRIPTOR_ID after chain completion.
+    //   dmac_sg pops its completion FIFO on each destination response; once
+    //   empty, util_axis_fifo holds the last popped value.  The register
+    //   therefore keeps the id of the LAST COMPLETED descriptor (0xB2), not a
+    //   stale value from an earlier TC - SAN-004 used 0xA0 and it does not
+    //   appear here.  This is an implementation characteristic, NOT a
+    //   documented contract (SFR map 4.6.2).  A driver must not rely on it;
+    //   use the EOT interrupt or TRANSFER_DONE to detect completion.
     axil_read(REG_DESCRIPTOR_ID, rd);
     check_eq("DESCRIPTOR_ID = last of chain", rd, 32'h0000_00B2);
 
@@ -575,7 +594,7 @@ module tb_sg_dma;
 
   // ==========================================================================
   // SAN-006 : IRQ & status
-  //   A W1C write to IRQ_PENDING clears IRQ_SOURCE - see SFR map 3.7.
+  //   A W1C write to IRQ_PENDING clears IRQ_SOURCE - see SFR map 4.2.2.
   //   IRQ_MASK = 0x1 keeps SOT masked, so IRQ_SOURCE[0] stays set after the
   //   clear while IRQ_PENDING reads back as 0.
   // ==========================================================================
@@ -655,7 +674,7 @@ module tb_sg_dma;
   // ==========================================================================
   initial begin
     $display("==========================================================");
-    $display("  SG DMA sanity test   (SGDMA-SANITY-v0.2)");
+    $display("  SG DMA sanity test   (SGDMA-SANITY-v1.0)");
     $display("==========================================================");
 
     repeat (10) @(posedge clk);
