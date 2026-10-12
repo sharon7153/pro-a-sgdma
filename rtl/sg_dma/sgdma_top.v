@@ -158,6 +158,8 @@ module sgdma_top #(
     .ENABLE_DIAGNOSTICS_IF   (0),
     .ALLOW_ASYM_MEM          (0),
     .CACHE_COHERENT          (0),
+    .AXI_AXCACHE             (4'b0000),  // Device Non-bufferable - team decision 2026-10-06
+    .AXI_AXPROT              (3'b000),   // team decision 2026-10-06
     .FRAMELOCK               (0),
     .MAX_NUM_FRAMES_WIDTH    (NUM_FRAMES_W),
     .USE_EXT_SYNC            (0),
