@@ -27,8 +27,8 @@ module tb_sg_dma;
   localparam logic [10:0] REG_PERIPHERAL_ID    = 11'h004;
   localparam logic [10:0] REG_SCRATCH          = 11'h008;
   localparam logic [10:0] REG_IDENTIFICATION   = 11'h00C;
-  localparam logic [10:0] REG_IF_DESCRIPTION   = 11'h010;
-  localparam logic [10:0] REG_AXI_CONFIG       = 11'h014;
+  localparam logic [10:0] REG_INTERFACE_DESCRIPTION_1   = 11'h010;
+  localparam logic [10:0] REG_INTERFACE_DESCRIPTION_2       = 11'h014;
   localparam logic [10:0] REG_IRQ_MASK         = 11'h080;
   localparam logic [10:0] REG_IRQ_PENDING      = 11'h084;
   localparam logic [10:0] REG_IRQ_SOURCE       = 11'h088;
@@ -55,13 +55,13 @@ module tb_sg_dma;
   localparam logic [31:0] EXP_IDENTIFICATION = 32'h444D_4143;   // "DMAC"
   // sgdma_top does not override the ID parameter -> defaults to 0.  [TO CONFIRM]
   localparam logic [31:0] EXP_PERIPHERAL_ID  = 32'h0000_0000;
-  localparam logic [31:0] EXP_IF_DESCRIPTION = 32'h3807_0303;   // measured 2026-10-01
+  localparam logic [31:0] EXP_INTERFACE_DESCRIPTION_1 = 32'h3807_0303;   // measured 2026-10-01
   // AXI_AXCACHE / AXI_AXPROT are not overridden by sgdma_top, so axi_dmac's
   // own defaults apply - which differ from axi_dmac_regmap's local defaults.
   // Measured 0x00000000 => AXCACHE = 4'b0000 (Device Non-bufferable).
   // [TO CONFIRM] 4'b0011 (Normal Non-cacheable Bufferable) is the usual choice
   // for an MM->MM DMA; this is a design decision, not a TB expectation.
-  localparam logic [31:0] EXP_AXI_CONFIG     = 32'h0000_0000;
+  localparam logic [31:0] EXP_INTERFACE_DESCRIPTION_2     = 32'h0000_0000;
   localparam logic [31:0] EXP_FLAGS_RESET    = 32'h0000_0002;   // LAST defaults to 1
 
   // ---------------- clock / reset ----------------
@@ -400,8 +400,8 @@ module tb_sg_dma;
     if (rd !== EXP_IDENTIFICATION) bus_ok = 1'b0;
 
     check_reg("PERIPHERAL_ID",         REG_PERIPHERAL_ID,  EXP_PERIPHERAL_ID);
-    check_reg("INTERFACE_DESCRIPTION", REG_IF_DESCRIPTION, EXP_IF_DESCRIPTION);
-    check_reg("AXI_CONFIG",            REG_AXI_CONFIG,     EXP_AXI_CONFIG);
+    check_reg("INTERFACE_DESCRIPTION_1", REG_INTERFACE_DESCRIPTION_1, EXP_INTERFACE_DESCRIPTION_1);
+    check_reg("INTERFACE_DESCRIPTION_2",            REG_INTERFACE_DESCRIPTION_2,     EXP_INTERFACE_DESCRIPTION_2);
 
     if (cur_fail != 0 && bus_ok) begin
       $display("    note : build-configuration register mismatch - confirm the");
@@ -610,7 +610,7 @@ module tb_sg_dma;
     check_cond("irq de-asserted after W1C", irq === 1'b0, $sformatf("(irq=%b)", irq));
 
     axil_read(REG_DESCRIPTOR_ID, rd);
-    check_eq("SG_DESCRIPTOR_ID", rd, 32'h0000_00C5);
+    check_eq("DESCRIPTOR_ID", rd, 32'h0000_00C5);
     tc_end();
   endtask
 
