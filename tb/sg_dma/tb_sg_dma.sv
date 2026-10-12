@@ -433,8 +433,9 @@ module tb_sg_dma;
   //   Must run before any register in this list is written.
   //
   //   Covers 10 of the ~30 registers listed in SFR map appendix A.  The rest
-  //   are intentionally left to the verification team (SOR RST-007).  Do not
-  //   read this TC as proof that every reset value has been checked.
+  //   are out of scope for this TC AND for the SOR (team decision 2026-10-06);
+  //   they are not scheduled anywhere.  Do not read this TC as proof that every
+  //   reset value has been checked.
   // ==========================================================================
   task automatic san_003();
     tc_begin("SAN-003", "Reset defaults");
