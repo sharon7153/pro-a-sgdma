@@ -1,6 +1,6 @@
 // ============================================================================
 // tb_sg_dma.sv
-//   Sanity testbench for sg_dma_top (SG, MM->MM, single clock)
+//   Sanity testbench for sgdma_top (SG, MM->MM, single clock)
 //
 //   SAN-001 : Register identity          (5 checks)
 //   SAN-002 : Scratch R/W                (3 checks)
@@ -53,10 +53,10 @@ module tb_sg_dma;
   // ---------------- expected values (SGDMA-SFR-v0.2) ----------------
   localparam logic [31:0] EXP_VERSION        = 32'h0004_0565;
   localparam logic [31:0] EXP_IDENTIFICATION = 32'h444D_4143;   // "DMAC"
-  // sg_dma_top does not override the ID parameter -> defaults to 0.  [TO CONFIRM]
+  // sgdma_top does not override the ID parameter -> defaults to 0.  [TO CONFIRM]
   localparam logic [31:0] EXP_PERIPHERAL_ID  = 32'h0000_0000;
   localparam logic [31:0] EXP_IF_DESCRIPTION = 32'h3807_0303;   // measured 2026-10-01
-  // AXI_AXCACHE / AXI_AXPROT are not overridden by sg_dma_top, so axi_dmac's
+  // AXI_AXCACHE / AXI_AXPROT are not overridden by sgdma_top, so axi_dmac's
   // own defaults apply - which differ from axi_dmac_regmap's local defaults.
   // Measured 0x00000000 => AXCACHE = 4'b0000 (Device Non-bufferable).
   // [TO CONFIRM] 4'b0011 (Normal Non-cacheable Bufferable) is the usual choice
@@ -138,7 +138,7 @@ module tb_sg_dma;
   logic [IDW-1:0] m_sg_axi_rid = '0;
 
   // ---------------- DUT ----------------
-  sg_dma_top #(
+  sgdma_top #(
     .ADDR_WIDTH   (AW),
     .DATA_WIDTH   (DW),
     .AXI_ID_WIDTH (IDW)

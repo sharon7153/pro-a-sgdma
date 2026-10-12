@@ -34,4 +34,4 @@
 ../rtl/third_party/adi_hdl/library/axi_dmac/src_axi_mm.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/src_axi_stream.v
 ../rtl/third_party/adi_hdl/library/axi_dmac/src_fifo_inf.v
-../rtl/sg_dma/sg_dma_top.v
+../rtl/sg_dma/sgdma_top.v

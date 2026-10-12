@@ -1,5 +1,5 @@
 // ============================================================================
-// sg_dma_top.v
+// sgdma_top.v
 //   Scatter-Gather DMA wrapper around ADI axi_dmac (hdl_2026_r1)
 //
 //   Fixed configuration:
@@ -21,7 +21,7 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-module sg_dma_top #(
+module sgdma_top #(
   parameter ID                  = 0,
   parameter ADDR_WIDTH          = 32,
   parameter DATA_WIDTH          = 64,
