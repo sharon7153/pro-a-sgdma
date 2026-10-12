@@ -1,0 +1,526 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>SG DMA RTL 가이드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap">
+<style>
+/* Layout: 한 줄 읽기 컬럼(≈720px) + 넓은 도식(최대 960px). 회로도 느낌: 차가운 종이 + 잉크, SG 경로만 앰버, 데이터 경로는 틸 */
+:root{
+  --bg:#f5f7fa; --panel:#ffffff; --ink:#17202b; --muted:#5a6575; --line:#d3dae3;
+  --sg:#b45f00; --sg-soft:#fbead2; --data:#0d6b82; --data-soft:#d9eef3; --code-bg:#eef1f5; --off:#9aa4b1;
+  --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --panel:#161d25; --ink:#e3e8ee; --muted:#97a3b2; --line:#2c3743;
+  --sg:#f0a443; --sg-soft:#3a2912; --data:#56c2d8; --data-soft:#10323a; --code-bg:#1c252f; --off:#5d6875; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --panel:#161d25; --ink:#e3e8ee; --muted:#97a3b2; --line:#2c3743;
+  --sg:#f0a443; --sg-soft:#3a2912; --data:#56c2d8; --data-soft:#10323a; --code-bg:#1c252f; --off:#5d6875; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;padding-inline:20px;padding-block:0 64px}
+.wrap{max-width:960px;margin:0 auto}
+.col{max-width:720px}
+header{padding-block:48px 24px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.2;margin:8px 0 12px;letter-spacing:-.02em;text-wrap:balance}
+h2{font-size:24px;line-height:1.3;margin:56px 0 8px;letter-spacing:-.01em;text-wrap:balance;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+h2 .n{font-family:var(--mono);font-size:14px;color:var(--muted);font-weight:500}
+h3{font-size:18px;margin:32px 0 4px}
+p{margin:10px 0}
+.lead{font-size:18px;color:var(--muted)}
+code,.m{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.sg{color:var(--sg);font-weight:600}
+.dt{color:var(--data);font-weight:600}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:20px;font-size:14px}
+nav.toc a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line)}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--ink);border-color:var(--ink)}
+.note{border-left:3px solid var(--line);padding:2px 0 2px 14px;color:var(--muted);font-size:15px}
+.key{background:var(--sg-soft);border-radius:8px;padding:14px 18px;margin:18px 0}
+.key b{color:var(--sg)}
+
+figure{margin:24px 0 8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 16px 12px}
+.scroll{overflow-x:auto}
+figure svg{display:block;width:100%;height:auto;min-width:640px;color:var(--ink);font-family:var(--sans)}
+figcaption{font-size:14px;color:var(--muted);margin-top:10px;line-height:1.6}
+svg .bx{fill:var(--panel);stroke:currentColor;stroke-width:1.3}
+svg .bx2{fill:var(--bg);stroke:var(--line);stroke-width:1.2}
+svg .bsg{fill:var(--sg-soft);stroke:var(--sg);stroke-width:1.6}
+svg .bdt{fill:var(--data-soft);stroke:var(--data);stroke-width:1.4}
+svg .ln{fill:none;stroke:currentColor;stroke-width:1.4}
+svg .lsg{fill:none;stroke:var(--sg);stroke-width:1.8}
+svg .ldt{fill:none;stroke:var(--data);stroke-width:1.8}
+svg .dash{stroke-dasharray:5 4}
+svg .t{fill:currentColor;font-size:13px}
+svg .tb{fill:currentColor;font-size:14px;font-weight:600}
+svg .ts{fill:var(--muted);font-size:11.5px}
+svg .tm{fill:currentColor;font-family:var(--mono);font-size:11.5px}
+svg .tsg{fill:var(--sg);font-size:12.5px;font-weight:600}
+svg .tdt{fill:var(--data);font-size:12.5px;font-weight:600}
+svg .fsg{fill:var(--sg)} svg .fdt{fill:var(--data)} svg .fk{fill:currentColor}
+
+.tbl{overflow-x:auto;margin:18px 0}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:560px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.m2{font-family:var(--mono);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.tree{font-family:var(--mono);font-size:13.5px;line-height:1.9;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;white-space:pre;margin:18px 0}
+.tree .c{color:var(--muted)} .tree .h{color:var(--sg);font-weight:500} .tree .d{color:var(--data)} .tree .x{color:var(--off)}
+
+ol.steps{padding-left:22px} ol.steps li{margin:8px 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:16px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h4{margin:0 0 4px;font-size:15px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card h4 .id{font-family:var(--mono);font-size:12px;color:var(--sg);font-weight:500}
+.card p{margin:4px 0;font-size:14.5px;color:var(--muted)}
+footer{margin-top:56px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">sharon7153/pro-a-sgdma · sgdma_top.v</div>
+  <h1>SG DMA, 처음부터 RTL까지</h1>
+  <p class="lead col">DMA가 무엇인지부터 시작해서, Scatter-Gather가 왜 필요한지, 그리고 이 레포의 <code>sgdma_top</code>이 <code>dmac_sg.v</code>로 descriptor를 읽어 전송 엔진에 넘기는 과정을 순서대로 따라갑니다. 예시 값은 모두 <code>tb_sg_dma.sv</code>의 SAN-005(3-descriptor gather)에서 가져왔습니다.</p>
+  <nav class="toc">
+    <a href="#dma">1. DMA란</a><a href="#sg">2. 왜 Scatter-Gather인가</a><a href="#cfg">3. 이 레포의 구성</a>
+    <a href="#desc">4. Descriptor 형식</a><a href="#tree">5. RTL 계층 구조</a><a href="#flow">6. SG가 끼어드는 지점</a>
+    <a href="#sgcore">7. dmac_sg 내부</a><a href="#seq">8. SAN-005로 보는 동작 순서</a><a href="#reg">9. 레지스터</a><a href="#read">10. 읽는 순서와 SOR 연결</a>
+  </nav>
+</header>
+
+<section id="dma">
+<h2><span class="n">01</span>DMA란 무엇인가</h2>
+<div class="col">
+<p>메모리의 A 위치에서 B 위치로 4KB를 옮긴다고 해봅시다. CPU가 직접 하면 "8바이트 읽기 → 8바이트 쓰기"를 512번 반복해야 하고, 그동안 CPU는 다른 일을 못 합니다.</p>
+<p><b>DMA(Direct Memory Access)</b>는 이 복사만 전담하는 하드웨어입니다. CPU는 "어디서(src), 어디로(dest), 몇 바이트(length)"만 알려주고 손을 뗍니다. DMA가 버스 마스터가 되어 직접 읽고 쓰고, 끝나면 인터럽트(IRQ)로 알려줍니다. 이삿짐센터에 주소 두 개와 짐 양만 알려주는 것과 같습니다.</p>
+</div>
+
+<figure><div class="scroll">
+<svg viewBox="0 0 760 300" role="img" aria-label="sgdma_top의 네 가지 버스 포트: 제어용 s_axi와 데이터용 m_src_axi, m_dest_axi, descriptor용 m_sg_axi">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fk"/></marker>
+    <marker id="a1s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fsg"/></marker>
+    <marker id="a1d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fdt"/></marker>
+  </defs>
+  <rect class="bx" x="40" y="36" width="170" height="64" rx="6"/>
+  <text class="tb" x="125" y="64" text-anchor="middle">CPU (TB)</text>
+  <text class="ts" x="125" y="84" text-anchor="middle">설정만 하고 다른 일</text>
+
+  <rect class="bx" x="530" y="30" width="200" height="124" rx="6"/>
+  <text class="tb" x="630" y="50" text-anchor="middle">메모리</text>
+  <rect class="bdt" x="548" y="118" width="74" height="26" rx="3"/><text class="t" x="585" y="136" text-anchor="middle">src 버퍼</text>
+  <rect class="bdt" x="638" y="118" width="74" height="26" rx="3"/><text class="t" x="675" y="136" text-anchor="middle">dst 버퍼</text>
+  <rect class="bsg" x="548" y="62" width="164" height="24" rx="3"/><text class="tsg" x="630" y="79" text-anchor="middle">descriptor 목록</text>
+
+  <rect class="bx" x="290" y="190" width="180" height="70" rx="6"/>
+  <text class="tb" x="380" y="220" text-anchor="middle">sgdma_top</text>
+  <text class="ts" x="380" y="240" text-anchor="middle">AXI master 3개</text>
+
+  <path class="lsg dash" d="M210 60 H545" marker-end="url(#a1s)"/>
+  <text class="tsg" x="370" y="52" text-anchor="middle">CPU가 목록 작성 (write_desc)</text>
+  <path class="lsg" d="M545 98 H380 V188" marker-end="url(#a1s)"/>
+  <text class="tsg" x="392" y="128">⓪ descriptor 읽기 · m_sg_axi</text>
+  <path class="ln" d="M125 100 V225 H288" marker-end="url(#a1)"/>
+  <text class="t" x="135" y="160">① 레지스터 설정</text>
+  <text class="ts" x="135" y="177">AXI4-Lite s_axi (11bit)</text>
+  <path class="ln dash" d="M290 250 H82 V102" marker-end="url(#a1)"/>
+  <text class="t" x="96" y="276">④ irq</text>
+  <path class="ldt" d="M585 156 V208 H472" marker-end="url(#a1d)"/>
+  <text class="tdt" x="482" y="200">② 읽기 · m_src_axi</text>
+  <path class="ldt" d="M472 240 H675 V156" marker-end="url(#a1d)"/>
+  <text class="tdt" x="482" y="262">③ 쓰기 · m_dest_axi</text>
+</svg></div>
+<figcaption><code>sgdma_top</code>이 밖으로 내놓는 포트가 바로 이 그림입니다. CPU가 DMA를 설정하는 <b>제어 경로</b>(AXI4-Lite slave)와, DMA가 직접 데이터를 옮기는 <b>데이터 경로</b>(AXI4 master 두 개: 읽기 전용 <span class="dt">m_src_axi</span>, 쓰기 전용 <span class="dt">m_dest_axi</span>). SG라서 descriptor를 읽어오는 세 번째 master <span class="sg">m_sg_axi</span>가 추가됩니다. TB에서는 세 master가 같은 메모리 모델(<code>u_src_mem</code>, <code>u_sg_mem</code>, <code>u_dst_mem</code>)을 공유합니다.</figcaption>
+</figure>
+
+<div class="col">
+<h3>RTL을 읽기 전에 알아둘 용어</h3>
+<div class="grid2">
+  <div class="card"><h4>src / dest</h4><p>읽을 곳과 쓸 곳. axi_dmac은 각각 AXI-MM, AXI-Stream, FIFO 중에서 고를 수 있고, 이 레포는 메모리→메모리(MM2MM)로 고정되어 있습니다.</p></div>
+  <div class="card"><h4>beat / burst</h4><p>beat는 한 사이클에 옮기는 데이터 1개(64비트면 8바이트), burst는 주소 한 번에 연속으로 오가는 beat 묶음(arlen+1개). 이 레포는 최대 128B = 16 beat.</p></div>
+  <div class="card"><h4>transfer</h4><p>요청 하나의 전체 복사. 길이가 burst보다 길면 DMA가 내부에서 여러 burst로 잘라서 보냅니다. SG에서는 descriptor 1개 = transfer 1개입니다.</p></div>
+  <div class="card"><h4>EOT</h4><p>End Of Transfer. transfer가 다 끝났다는 신호이고, 보통 IRQ로 이어집니다. RTL에서는 <code>eot</code>, <code>dma_eot</code>, <code>req_eot</code>로 보입니다.</p></div>
+  <div class="card"><h4>valid / ready</h4><p>모듈 사이 요청은 모두 AXI식 핸드셰이크입니다. valid와 ready가 같은 클럭에 1이면 하나가 넘어갑니다.</p></div>
+  <div class="card"><h4>util_axis_fifo</h4><p>블록 사이에 놓이는 FIFO. 원래는 클럭이 다른 블록을 잇는 CDC 용도지만, 이 레포는 단일 클럭이라 모두 동기 FIFO로 합성됩니다.</p></div>
+</div>
+</div>
+</section>
+
+<section id="sg">
+<h2><span class="n">02</span>왜 Scatter-Gather가 필요한가</h2>
+<div class="col">
+<p>단순 DMA는 "연속된 한 덩어리"만 옮깁니다. 그런데 실제 메모리 버퍼는 흩어져 있는 경우가 많습니다. 리눅스에서 앱이 잡은 버퍼는 가상 주소로는 연속이지만, 물리 주소로는 4KB 페이지가 여기저기 흩어져 있습니다. 네트워크 패킷도 헤더와 payload가 따로 있는 경우가 흔합니다.</p>
+<p>단순 DMA로 이걸 처리하려면 조각마다 CPU가 레지스터를 쓰고, 인터럽트를 받고, 다음 조각을 다시 설정해야 합니다. 조각이 수백 개면 CPU가 결국 계속 붙어 있어야 합니다.</p>
+<p><b>Scatter-Gather</b>는 이렇게 해결합니다. CPU가 "할 일 목록(descriptor)"을 메모리에 미리 연결 리스트로 써두고, DMA에는 <b>첫 descriptor 주소 하나만</b> 알려줍니다. 그다음부터는 DMA가 스스로 목록을 읽어가며 끝까지 처리합니다.</p>
+</div>
+
+<figure><div class="scroll">
+<svg viewBox="0 0 760 310" role="img" aria-label="SAN-005의 descriptor 세 개가 흩어진 소스 조각을 0x21000부터 연속된 목적지로 모으는 과정">
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fk"/></marker>
+    <marker id="a2s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fsg"/></marker>
+    <marker id="a2d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fdt"/></marker>
+  </defs>
+  <text class="tsg" x="40" y="22">SG_ADDRESS = 0x1100</text>
+  <path class="lsg" d="M70 28 V46" marker-end="url(#a2s)"/>
+  <rect class="bsg" x="40" y="48" width="180" height="76" rx="6"/>
+  <text class="tb" x="54" y="70">D0</text><text class="tm" x="84" y="70">@0x1100 id=B0</text>
+  <text class="tm" x="54" y="90">src=0x11000 128B</text>
+  <text class="tm" x="54" y="110">next=0x1140</text>
+  <rect class="bsg" x="290" y="48" width="180" height="76" rx="6"/>
+  <text class="tb" x="304" y="70">D1</text><text class="tm" x="334" y="70">@0x1140 id=B1</text>
+  <text class="tm" x="304" y="90">src=0x13000 256B</text>
+  <text class="tm" x="304" y="110">next=0x1180</text>
+  <rect class="bsg" x="540" y="48" width="180" height="76" rx="6"/>
+  <text class="tb" x="554" y="70">D2</text><text class="tm" x="584" y="70">@0x1180 id=B2</text>
+  <text class="tm" x="554" y="90">src=0x15000 64B</text>
+  <text class="tm" x="554" y="110">flags=11 LAST|IRQ</text>
+  <path class="lsg" d="M220 86 H288" marker-end="url(#a2s)"/>
+  <path class="lsg" d="M470 86 H538" marker-end="url(#a2s)"/>
+  <rect class="bx2" x="40" y="162" width="680" height="34" rx="3"/>
+  <rect class="bdt" x="80" y="162" width="80" height="34"/><text class="tdt" x="120" y="184" text-anchor="middle">A</text>
+  <rect class="bdt" x="330" y="162" width="160" height="34"/><text class="tdt" x="410" y="184" text-anchor="middle">B</text>
+  <rect class="bdt" x="600" y="162" width="40" height="34"/><text class="tdt" x="620" y="184" text-anchor="middle">C</text>
+  <text class="ts" x="40" y="154">소스: 0x11000 / 0x13000 / 0x15000에 흩어진 조각 (scatter)</text>
+  <path class="ln dash" d="M120 124 V160" marker-end="url(#a2)"/>
+  <path class="ln dash" d="M380 124 L400 160" marker-end="url(#a2)"/>
+  <path class="ln dash" d="M620 124 V160" marker-end="url(#a2)"/>
+  <text class="ts" x="220" y="244">목적지: 0x21000부터 한 줄로 모임 (gather)</text>
+  <rect class="bx2" x="40" y="252" width="680" height="34" rx="3"/>
+  <rect class="bdt" x="220" y="252" width="80" height="34"/><text class="tdt" x="260" y="274" text-anchor="middle">A</text>
+  <rect class="bdt" x="300" y="252" width="160" height="34"/><text class="tdt" x="380" y="274" text-anchor="middle">B</text>
+  <rect class="bdt" x="460" y="252" width="40" height="34"/><text class="tdt" x="480" y="274" text-anchor="middle">C</text>
+  <path class="ldt" d="M120 198 L255 250" marker-end="url(#a2d)"/>
+  <path class="ldt" d="M410 198 L382 250" marker-end="url(#a2d)"/>
+  <path class="ldt" d="M620 198 L484 250" marker-end="url(#a2d)"/>
+</svg></div>
+<figcaption>TB의 SAN-005 그대로입니다. TB는 SG_ADDRESS에 D0 주소(0x1100)만 쓰고 submit합니다. DMA는 D0을 읽어 A를 복사하고, next를 따라 D1, D2로 넘어가며, D2의 LAST 플래그에서 멈춥니다. descriptor마다 dest 주소가 따로 있어서 반대 방향(한 덩어리를 여러 곳에 흩뿌리는 scatter)도 같은 방식으로 됩니다.</figcaption>
+</figure>
+</section>
+
+<section id="cfg">
+<h2><span class="n">03</span>이 레포의 구성: <code>sgdma_top.v</code></h2>
+<div class="col">
+<p><code>sgdma_top</code>은 로직이 없는 wrapper입니다. ADI <code>axi_dmac</code>(hdl_2026_r1)을 하나 인스턴스하고, 파라미터를 고정하고, 쓰지 않는 포트를 묶어둡니다. 그런데 이 파라미터들이 RTL 안에서 어떤 <code>generate</code> 블록이 살아남는지를 정하기 때문에, 코드를 읽기 전에 먼저 알아야 합니다.</p>
+</div>
+<div class="tbl"><table>
+<thead><tr><th>파라미터</th><th>값</th><th>RTL에 미치는 영향</th></tr></thead>
+<tbody>
+<tr><td class="m2">DMA_SG_TRANSFER</td><td class="m2">1</td><td><code>i_dmac_sg</code>가 생성됨. 0이면 이 블록이 통째로 tie-off</td></tr>
+<tr><td class="m2">DMA_2D_TRANSFER</td><td class="m2">0</td><td><code>dmac_2d_transfer</code>, framelock 없음. MUX는 <code>else</code> 블록이 살아 있고, descriptor의 y_length·stride는 무시</td></tr>
+<tr><td class="m2">ASYNC_CLK_* (6개)</td><td class="m2">0</td><td>모든 포트가 <code>clk</code> 하나. FIFO들은 동기 FIFO, <code>sync_bits</code> 등 CDC 셀은 통과선</td></tr>
+<tr><td class="m2">DMA_TYPE_SRC / DEST</td><td class="m2">0 / 0</td><td>둘 다 AXI-MM. <code>src_axi_mm</code>, <code>dest_axi_mm</code>만 생성 (SRC 기본값이 FIFO라 명시적으로 덮어씀)</td></tr>
+<tr><td class="m2">ADDR_WIDTH</td><td class="m2">32</td><td><code>HAS_ADDR_HIGH=0</code> → <code>*_ADDRESS_HIGH</code> 레지스터 0 고정. descriptor의 64비트 주소 필드는 하위 32비트만 사용</td></tr>
+<tr><td class="m2">DATA_WIDTH</td><td class="m2">64</td><td>src/dest 모두 8바이트/beat. SG 포트는 별도로 64비트 고정 (<code>SG_DATA_WIDTH</code>)</td></tr>
+<tr><td class="m2">MAX_BYTES_PER_BURST</td><td class="m2">128</td><td>burst 최대 16 beat. 256B descriptor는 burst 2개로 나뉨</td></tr>
+<tr><td class="m2">FIFO_SIZE</td><td class="m2">8</td><td><code>burst_memory</code>가 burst 8개까지 저장 (store-and-forward)</td></tr>
+<tr><td class="m2">LENGTH_WIDTH</td><td class="m2">24</td><td>descriptor 하나당 최대 16MB. x_length 필드 32비트 중 하위 24비트만 저장</td></tr>
+<tr><td class="m2">CYCLIC</td><td class="m2">0</td><td>FLAGS[0] 마스크 (기본값 1이라 덮어씀)</td></tr>
+<tr><td class="m2">AXI_AXCACHE / AXPROT</td><td class="m2">0000 / 000</td><td>세 master 모두 Device Non-bufferable (2026-10-06 팀 결정)</td></tr>
+</tbody></table></div>
+<div class="col">
+<h3>ADI 코드에 적용된 패치 1건</h3>
+<p><code>scripts/import_adi_dmac.sh</code>가 ADI 원본을 복사한 뒤 <code>patches/0001-burst-memory-zero-replication.patch</code>를 적용합니다. 원본과의 차이는 이것 하나뿐입니다.</p>
+</div>
+<div class="tree"><span class="c">// axi_dmac_burst_memory.v</span>
+<span class="x">- reg [...] dest_burst_len_data = {DMA_LENGTH_ALIGN{1'b1}};</span>
++ reg [...] dest_burst_len_data = (1 &lt;&lt; DMA_LENGTH_ALIGN) - 1;</div>
+<div class="col">
+<p>MM→MM이면 <code>DMA_LENGTH_ALIGN = 0</code>이 되고, 원본 식은 <code>{0{1'b1}}</code>, 즉 0번 반복(zero replication)이 됩니다. Verilog에서 허용되지 않는 식이라 시뮬레이터에 따라 에러나 경고가 납니다. 패치 식은 같은 경우 <code>(1&lt;&lt;0)-1 = 0</code>으로 의미는 같고 문법은 합법적입니다. 덕분에 길이 정렬 제약이 없어서 바이트 단위 길이를 그대로 검증할 수 있습니다.</p>
+</div>
+</section>
+
+<section id="desc">
+<h2><span class="n">04</span>Descriptor 형식</h2>
+<div class="col">
+<p><code>dmac_sg.v</code>는 descriptor 하나를 <b>64비트 × 6 beat = 48바이트</b>로 읽습니다. 그래서 AR 값이 고정되어 있습니다: <code>arlen=5</code>(6 beat), <code>arsize=3</code>(8바이트), <code>arburst=INCR</code>. 읽어오는 beat 순서대로 <code>hwdesc_counter</code>가 0~5를 세고, <code>case</code>문이 각 beat를 해당 레지스터에 저장합니다. TB의 <code>write_desc</code> 태스크가 이 형식대로 메모리에 씁니다.</p>
+</div>
+<div class="tbl"><table>
+<thead><tr><th>beat</th><th>오프셋</th><th>[63:32]</th><th>[31:0]</th><th>의미 · 이 레포에서</th></tr></thead>
+<tbody>
+<tr><td class="m2">0</td><td class="m2">+0x00</td><td class="m2">id</td><td class="m2">flags[1:0]</td><td>bit0 = LAST, bit1 = EOT_IRQ. SAN-005는 D0·D1에 <code>2'b00</code>, D2에 <code>2'b11</code></td></tr>
+<tr><td class="m2">1</td><td class="m2">+0x08</td><td class="m2" colspan="2">dest_addr</td><td>하위 32비트만 사용, 하위 3비트 버림</td></tr>
+<tr><td class="m2">2</td><td class="m2">+0x10</td><td class="m2" colspan="2">src_addr</td><td>하위 32비트만 사용, 하위 3비트 버림</td></tr>
+<tr><td class="m2">3</td><td class="m2">+0x18</td><td class="m2" colspan="2">next_desc_addr</td><td>다음 descriptor 주소. LAST가 1이면 읽지만 쓰이지 않음</td></tr>
+<tr><td class="m2">4</td><td class="m2">+0x20</td><td class="m2">x_length</td><td class="m2">y_length</td><td>x_length = 바이트 수 − 1 (TB: <code>len_bytes - 1</code>). y는 2D=0이라 무시</td></tr>
+<tr><td class="m2">5</td><td class="m2">+0x28</td><td class="m2">dest_stride</td><td class="m2">src_stride</td><td>2D 전용, 이 레포에서는 무시 (TB는 0을 씀)</td></tr>
+</tbody></table></div>
+<div class="col">
+<p class="note">주소 레지스터들은 <code>[ADDR_WIDTH-1 : BYTES_PER_BEAT_WIDTH]</code> = <code>[31:3]</code>로 선언되어 하위 비트를 저장하지 않습니다. 그래서 descriptor 주소와 src/dest 주소가 모두 8바이트 정렬이어야 하고, 정렬이 안 된 값은 하위 비트가 조용히 버려집니다. SAN-007에서 SG_ADDRESS에 <code>0xFFFFFFFF</code>를 쓰면 <code>0xFFFFFFF8</code>로 읽히는 것이 이 때문입니다.</p>
+</div>
+</section>
+
+<section id="tree">
+<h2><span class="n">05</span>RTL 계층 구조</h2>
+<div class="col">
+<p><code>filelists/rtl.f</code>에는 30여 개 파일이 있지만, 이 구성에서 실제로 인스턴스되는 것은 일부입니다. <span class="sg">앰버</span>가 SG 관련, <span class="dt">틸</span>이 데이터 이동 경로, <span style="color:var(--off)">회색</span>은 filelist에는 있지만 <code>generate</code>로 빠지는 블록입니다. 시뮬레이션 계층 경로로 적었습니다.</p>
+</div>
+<div class="tree">tb_sg_dma.dut : sgdma_top            <span class="c">// wrapper, 파라미터 고정만</span>
+└─ i_axi_dmac : axi_dmac.v            <span class="c">// top: 포트·파라미터 정리</span>
+   ├─ i_regmap : axi_dmac_regmap.v    <span class="c">// CPU가 보는 레지스터 (AXI4-Lite slave)</span>
+   │  ├─ up_axi                       <span class="c">// AXI-Lite ↔ up_wreq/up_rreq 변환</span>
+   │  └─ axi_dmac_regmap_request.v    <span class="c">// 전송 요청 레지스터, <span class="h">SG_ADDRESS</span>, 요청 FIFO</span>
+   └─ i_transfer : axi_dmac_transfer.v <span class="c">// 전송 엔진 전체</span>
+      ├─ i_reset_manager              <span class="c">// ENABLE/정지 시퀀스</span>
+      ├─ <span class="h">i_dmac_sg : dmac_sg.v</span>        <span class="c">// <span class="h">descriptor → 요청 변환</span></span>
+      ├─ <span class="x">i_dmac_flock, i_2d_transfer</span>  <span class="c">// <span class="x">DMA_2D_TRANSFER=0 → 생성 안 됨</span></span>
+      └─ <span class="d">i_request_arb : request_arb.v</span> <span class="c">// <span class="d">데이터 무버</span></span>
+         ├─ i_req_gen                  <span class="c">// 요청 → burst 단위 ID 발급</span>
+         ├─ <span class="d">i_src_dma_mm</span>               <span class="c">// <span class="d">AR 발행, R 수신</span> (address_generator)</span>
+         ├─ <span class="d">i_store_and_forward</span>        <span class="c">// <span class="d">axi_dmac_burst_memory, 패치 지점</span></span>
+         ├─ <span class="d">i_dest_dma_mm</span>              <span class="c">// <span class="d">AW/W 발행, B 수신</span> (address_generator, response_handler)</span>
+         ├─ i_response_manager         <span class="c">// dest 응답 → 전송 완료 보고</span>
+         ├─ <span class="x">i_src_dma_stream/fifo, i_dest_dma_stream/fifo</span> <span class="c">// <span class="x">TYPE=MM → 생성 안 됨</span></span>
+         └─ i_*_slice, i_*_fifo, i_sync_*  <span class="c">// 파이프라인·FIFO (단일 클럭)</span></div>
+<div class="col">
+<div class="key"><b>핵심 관찰.</b> SG 기능은 <code>dmac_sg.v</code> 한 파일(338줄)에 거의 다 들어 있습니다. 나머지 엔진은 원래 있던 단순 DMA 그대로이고, SG는 그 앞에 "요청을 자동으로 만들어주는 블록"으로 붙어 있을 뿐입니다. 파형을 볼 때는 <code>tb_sg_dma.dut.i_axi_dmac.i_transfer.i_dmac_sg</code>부터 열면 됩니다.</div>
+</div>
+</section>
+
+<section id="flow">
+<h2><span class="n">06</span>SG가 끼어드는 지점: <code>ctrl_hwdesc</code> MUX</h2>
+<div class="col">
+<p><code>axi_dmac_transfer.v</code>에서 SG 모드와 일반 모드는 MUX 하나로 갈립니다. CONTROL 레지스터 bit2(HWDESC)가 <code>ctrl_hwdesc</code>이고, 이 값에 따라 엔진에 들어가는 주소·길이·valid가 <b>CPU 레지스터 값</b>이냐 <b>dmac_sg가 읽어온 descriptor 값</b>이냐가 정해집니다. TB는 CONTROL에 <code>0x5</code>(ENABLE|HWDESC)를 써서 SG 쪽을 고릅니다.</p>
+</div>
+<figure><div class="scroll">
+<svg viewBox="0 0 820 300" role="img" aria-label="ctrl_hwdesc MUX가 레지스터 경로와 SG 경로 중 하나를 골라 request_arb에 넘기는 구조">
+  <defs>
+    <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fk"/></marker>
+    <marker id="a3s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fsg"/></marker>
+    <marker id="a3d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fdt"/></marker>
+  </defs>
+  <rect class="bx" x="20" y="30" width="160" height="62" rx="6"/>
+  <text class="tb" x="100" y="56" text-anchor="middle">i_regmap</text>
+  <text class="ts" x="100" y="76" text-anchor="middle">CPU 레지스터</text>
+  <rect class="bsg" x="20" y="176" width="160" height="62" rx="6"/>
+  <text class="tb" x="100" y="202" text-anchor="middle">i_dmac_sg</text>
+  <text class="ts" x="100" y="222" text-anchor="middle">m_sg_axi로 desc 읽기</text>
+  <path class="bx" d="M282 82 L320 102 L320 196 L282 216 Z"/>
+  <text class="tm" x="301" y="153" text-anchor="middle">MUX</text>
+  <text class="tm" x="301" y="236" text-anchor="middle">ctrl_hwdesc</text>
+  <path class="ln" d="M180 60 H240 V110 H280" marker-end="url(#a3)"/>
+  <text class="ts" x="188" y="50">0: req_* (일반 모드)</text>
+  <path class="lsg" d="M180 207 H240 V188 H280" marker-end="url(#a3s)"/>
+  <text class="tsg" x="186" y="258">1: dma_sg_out_*</text>
+  <path class="lsg" d="M100 92 V174" marker-end="url(#a3s)"/>
+  <text class="tsg" x="110" y="128">SG_ADDRESS</text>
+  <text class="tsg" x="110" y="146">+ submit</text>
+  <path class="ln" d="M320 149 H468" marker-end="url(#a3)"/>
+  <text class="tm" x="394" y="141" text-anchor="middle">dma_req_*</text>
+  <text class="ts" x="394" y="170" text-anchor="middle">(2D 블록 없음)</text>
+  <rect class="bdt" x="470" y="90" width="330" height="118" rx="6"/>
+  <text class="tb" x="635" y="114" text-anchor="middle">i_request_arb (데이터 무버)</text>
+  <rect class="bx" x="484" y="132" width="92" height="34" rx="4"/><text class="t" x="530" y="154" text-anchor="middle">src_dma_mm</text>
+  <rect class="bx" x="590" y="132" width="92" height="34" rx="4"/><text class="t" x="636" y="154" text-anchor="middle">burst_mem</text>
+  <rect class="bx" x="696" y="132" width="92" height="34" rx="4"/><text class="t" x="742" y="154" text-anchor="middle">dest_dma_mm</text>
+  <path class="ldt" d="M576 149 H588" marker-end="url(#a3d)"/>
+  <path class="ldt" d="M682 149 H694" marker-end="url(#a3d)"/>
+  <text class="ts" x="484" y="190">주소·길이 1개 = descriptor 1개</text>
+  <path class="lsg dash" d="M635 208 V278 H100 V240" marker-end="url(#a3s)"/>
+  <text class="tsg" x="350" y="272">dma_eot: descriptor 1개 완료 → id FIFO에서 1개 꺼냄</text>
+</svg></div>
+<figcaption>SG가 켜지면 TB의 submit은 "dmac_sg 시작" 신호로만 쓰이고, 엔진에 들어가는 요청은 dmac_sg가 descriptor마다 하나씩 만들어냅니다. 엔진 입장에서는 SG든 아니든 똑같이 "주소·길이 요청 1개"를 받을 뿐입니다.</figcaption>
+</figure>
+<div class="col">
+<p>2D가 꺼져 있으므로 이 레포에서 실제로 살아 있는 코드는 <code>axi_dmac_transfer.v</code>의 <code>generate if (DMA_2D_TRANSFER == 1) ... else</code> 중 <code>else</code> 쪽입니다. 이 몇 줄이 SG와 기존 엔진의 접점 전부입니다.</p>
+</div>
+<div class="tree">assign dma_req_valid        = ctrl_hwdesc ? <span class="h">dma_sg_out_req_valid</span>    : req_valid_gated;
+assign req_ready_gated      = ctrl_hwdesc ? <span class="h">dma_sg_in_req_ready</span>     : dma_req_ready;
+assign dma_req_dest_address = ctrl_hwdesc ? <span class="h">dma_sg_out_dest_address</span> : req_dest_address;
+assign dma_req_src_address  = ctrl_hwdesc ? <span class="h">dma_sg_out_src_address</span>  : req_src_address;
+assign dma_req_length       = ctrl_hwdesc ? <span class="h">dma_sg_x_length</span>         : req_x_length;
+
+<span class="c">// 위쪽 (generate 밖)</span>
+assign req_eot              = ctrl_hwdesc ? (dma_eot &amp; <span class="h">dma_sg_hwdesc_eot</span>) : dma_eot;
+assign dma_sg_in_req_valid  = ctrl_hwdesc ? req_valid_gated : 1'b0;</div>
+<div class="col">
+<p>둘째 줄을 보면 SG 모드에서 regmap 요청의 ready는 <code>dma_sg_in_req_ready</code>, 즉 dmac_sg FSM이 IDLE일 때만 1입니다. 체인이 도는 동안에는 새 submit이 대기합니다. <code>req_eot</code> 줄은 SG 모드에서 모든 descriptor 완료마다 IRQ가 나는 것이 아니라, <b>EOT_IRQ 플래그가 켜진 descriptor가 끝날 때만</b> 완료가 올라간다는 뜻입니다.</p>
+</div>
+</section>
+
+<section id="sgcore">
+<h2><span class="n">07</span><code>dmac_sg.v</code> 내부</h2>
+<div class="col">
+<p>dmac_sg는 세 부분입니다. <b>FSM</b>이 AXI 읽기를 발행하고, <b>필드 레지스터</b>가 6 beat를 받아 저장하고, <b>FIFO 3개</b>가 바깥(regmap/엔진)과 연결합니다.</p>
+</div>
+<figure><div class="scroll">
+<svg viewBox="0 0 820 310" role="img" aria-label="dmac_sg 내부 블록: 세 개의 FIFO, FSM과 필드 레지스터, splitter, SG AXI 읽기 포트">
+  <defs>
+    <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fk"/></marker>
+    <marker id="a4s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fsg"/></marker>
+  </defs>
+  <text class="ts" x="150" y="18" text-anchor="middle">req_clk 쪽 (regmap·엔진)</text>
+  <text class="ts" x="530" y="18" text-anchor="middle">sg_clk 쪽 (이 레포에선 둘 다 clk)</text>
+  <path class="ln dash" d="M300 26 V300" opacity=".45"/>
+  <rect class="bx" x="230" y="40" width="140" height="44" rx="5"/>
+  <text class="tm" x="300" y="60" text-anchor="middle">i_sg_addr_fifo</text>
+  <text class="ts" x="300" y="76" text-anchor="middle">첫 desc 주소</text>
+  <rect class="bx" x="230" y="150" width="140" height="44" rx="5"/>
+  <text class="tm" x="300" y="170" text-anchor="middle">i_sg_desc_fifo</text>
+  <text class="ts" x="300" y="186" text-anchor="middle">주소·길이·stride</text>
+  <rect class="bx" x="230" y="246" width="140" height="44" rx="5"/>
+  <text class="tm" x="300" y="266" text-anchor="middle">i_fifo (깊이 4)</text>
+  <text class="ts" x="300" y="282" text-anchor="middle">id + EOT 플래그</text>
+  <path class="lsg" d="M20 62 H228" marker-end="url(#a4s)"/>
+  <text class="tsg" x="22" y="54">req_desc_address</text>
+  <path class="ln" d="M230 172 H22" marker-end="url(#a4)"/>
+  <text class="t" x="22" y="164">out_* → MUX</text>
+  <path class="ln" d="M20 258 H228" marker-end="url(#a4)"/>
+  <text class="t" x="22" y="250">resp_in_valid (dma_eot)</text>
+  <path class="ln" d="M230 280 H22" marker-end="url(#a4)"/>
+  <text class="ts" x="22" y="300">resp_out_id / resp_out_eot</text>
+  <rect class="bsg" x="420" y="34" width="220" height="166" rx="6"/>
+  <text class="tb" x="436" y="58">FSM</text>
+  <text class="tm" x="436" y="78">IDLE→SEND_ADDR→</text>
+  <text class="tm" x="436" y="96">RECV_DESC→DESC_READY</text>
+  <path class="ln" d="M432 112 H628" opacity=".35"/>
+  <text class="tb" x="436" y="136">필드 레지스터</text>
+  <text class="tm" x="436" y="156">hwdesc_counter 0..5</text>
+  <text class="tm" x="436" y="174">dest/src/next/len/</text>
+  <text class="tm" x="436" y="190">stride/id/flags</text>
+  <path class="lsg" d="M370 62 H418" marker-end="url(#a4s)"/>
+  <path class="lsg" d="M420 172 H372" marker-end="url(#a4s)"/>
+  <rect class="bx2" x="700" y="34" width="100" height="166" rx="6"/>
+  <text class="tb" x="750" y="112" text-anchor="middle">u_sg_mem</text>
+  <text class="ts" x="750" y="130" text-anchor="middle">descriptor</text>
+  <path class="lsg" d="M640 62 H698" marker-end="url(#a4s)"/>
+  <text class="tm" x="646" y="54">AR</text>
+  <path class="lsg" d="M700 156 H642" marker-end="url(#a4s)"/>
+  <text class="tm" x="646" y="148">R×6</text>
+  <rect class="bx" x="420" y="240" width="220" height="44" rx="5"/>
+  <text class="tm" x="530" y="260" text-anchor="middle">splitter (NUM_M=2)</text>
+  <text class="ts" x="530" y="276" text-anchor="middle">둘 다 받아야 ready</text>
+  <path class="ln" d="M530 200 V238" marker-end="url(#a4)"/>
+  <text class="tm" x="540" y="224">fetch_valid</text>
+  <path class="ln" d="M420 254 H392 V186 H372" marker-end="url(#a4)"/>
+  <path class="ln" d="M420 270 H372" marker-end="url(#a4)"/>
+</svg></div>
+<figcaption>원래 설계는 왼쪽(레지스터 클럭)과 오른쪽(SG 클럭)이 다를 수 있어서 세 FIFO가 경계(점선) 위에 걸쳐 있습니다. 이 레포는 <code>ASYNC_CLK_REQ_SG=0</code>이라 모두 같은 <code>clk</code>이고, FIFO는 동기 스테이지로 동작합니다. FSM이 DESC_READY가 되면 splitter가 같은 descriptor를 두 갈래로 보냅니다. 엔진용 필드는 desc FIFO로, 완료 처리에 쓸 id와 EOT 플래그는 id FIFO로.</figcaption>
+</figure>
+
+<h3>FSM 4개 상태</h3>
+<figure><div class="scroll">
+<svg viewBox="0 0 800 200" role="img" aria-label="dmac_sg descriptor FSM의 상태 전이">
+  <defs><marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fk"/></marker></defs>
+  <rect class="bx" x="20" y="66" width="140" height="56" rx="28"/>
+  <text class="tb" x="90" y="90" text-anchor="middle">IDLE</text><text class="tm" x="90" y="108" text-anchor="middle">sg_in_ready=1</text>
+  <rect class="bsg" x="230" y="66" width="140" height="56" rx="28"/>
+  <text class="tb" x="300" y="90" text-anchor="middle">SEND_ADDR</text><text class="tm" x="300" y="108" text-anchor="middle">arvalid=1</text>
+  <rect class="bsg" x="440" y="66" width="140" height="56" rx="28"/>
+  <text class="tb" x="510" y="90" text-anchor="middle">RECV_DESC</text><text class="tm" x="510" y="108" text-anchor="middle">rready=1</text>
+  <rect class="bx" x="650" y="66" width="140" height="56" rx="28"/>
+  <text class="tb" x="720" y="90" text-anchor="middle">DESC_READY</text><text class="tm" x="720" y="108" text-anchor="middle">fetch_valid=1</text>
+  <path class="ln" d="M160 94 H228" marker-end="url(#a5)"/><text class="tm" x="194" y="86" text-anchor="middle">시작</text>
+  <path class="ln" d="M370 94 H438" marker-end="url(#a5)"/><text class="tm" x="404" y="86" text-anchor="middle">arready</text>
+  <path class="ln" d="M580 94 H648" marker-end="url(#a5)"/><text class="tm" x="614" y="86" text-anchor="middle">rlast</text>
+  <path class="ln" d="M720 122 V166 H300 V124" marker-end="url(#a5)"/>
+  <text class="t" x="510" y="186" text-anchor="middle">fetch_ready &amp; LAST 아님 → 다음 descriptor (next_desc_addr로)</text>
+  <path class="ln dash" d="M720 66 V30 H90 V64" marker-end="url(#a5)"/>
+  <text class="t" x="405" y="22" text-anchor="middle">fetch_ready &amp; LAST, 또는 sg_enable=0 → 정지</text>
+</svg></div>
+<figcaption>"시작" 조건은 <code>sg_in_valid &amp;&amp; sg_enable</code>입니다. addr FIFO에 첫 주소가 들어와 있고 DMA가 enable 상태일 때입니다. 각 상태의 출력은 상태 비교 하나로 끝납니다 (<code>assign m_axi_arvalid = hwdesc_state == STATE_SEND_ADDR</code>).</figcaption>
+</figure>
+
+<div class="col">
+<h3>코드 읽을 때 짚을 점</h3>
+<ol class="steps">
+<li><b>next_desc_addr는 두 곳에서 갱신됩니다.</b> 처음 시작할 때 addr FIFO의 값(SG_ADDRESS)으로, 이후에는 beat 3에서 읽은 next 포인터로. 그래서 <code>m_axi_araddr = {next_desc_addr, 3'b0}</code> 한 줄이 첫 descriptor와 이후 descriptor를 모두 처리합니다.</li>
+<li><b>prefetch가 자연스럽게 일어납니다.</b> desc FIFO가 D0를 받아가면 FSM은 바로 SEND_ADDR로 돌아가 D1을 읽기 시작합니다. 엔진이 D0 데이터를 옮기는 동안 다음 descriptor가 미리 준비됩니다. SOR DESC-009에 적어둔 SG AR 간격(80ns)이 바로 이 동작입니다.</li>
+<li><b>id FIFO가 "진행 중인 descriptor"를 기억합니다.</b> 엔진에서 <code>dma_eot</code>가 올 때마다 하나씩 꺼내고(<code>fifo_out_ready = resp_in_valid</code>), 꺼낸 항목의 EOT 플래그가 1이면 IRQ로 이어집니다. 깊이가 4(<code>ADDRESS_WIDTH=2</code>)라서 이 FIFO가 차면 splitter가 막혀 prefetch도 멈춥니다. FIFO가 비면 마지막으로 꺼낸 값이 출력에 남기 때문에 DESCRIPTOR_ID가 마지막 완료 id(SAN-005의 0xB2)를 보여줍니다.</li>
+<li><b>addr/desc FIFO는 <code>ADDRESS_WIDTH(0)</code></b>, 즉 저장 공간이 1칸인 스테이지입니다. 버퍼라기보다 핸드셰이크를 끊어주는 레지스터에 가깝습니다.</li>
+<li><b><code>m_axi_rresp</code>는 포트에만 있고 어디에도 쓰이지 않습니다.</b> descriptor fetch에서 에러 응답이 와도 그 데이터로 계속 진행합니다 (SOR ERR-002).</li>
+</ol>
+</div>
+</section>
+
+<section id="seq">
+<h2><span class="n">08</span>SAN-005로 보는 동작 순서</h2>
+<figure><div class="scroll">
+<svg viewBox="0 0 820 250" role="img" aria-label="SAN-005에서 설정, descriptor fetch, 데이터 전송, 완료 이벤트가 시간에 따라 겹치는 모습">
+  <text class="ts" x="10" y="46">TB (CPU)</text>
+  <text class="ts" x="10" y="101">desc fetch</text>
+  <text class="ts" x="10" y="156">데이터 전송</text>
+  <text class="ts" x="10" y="211">dma_eot</text>
+  <path class="ln" d="M110 30 V230" opacity=".25"/>
+  <rect class="bx" x="120" y="28" width="90" height="28" rx="4"/><text class="t" x="165" y="47" text-anchor="middle">start_sg</text>
+  <rect class="bsg" x="215" y="83" width="46" height="28" rx="4"/><text class="tsg" x="238" y="102" text-anchor="middle">D0</text>
+  <rect class="bsg" x="266" y="83" width="46" height="28" rx="4"/><text class="tsg" x="289" y="102" text-anchor="middle">D1</text>
+  <rect class="bsg" x="317" y="83" width="46" height="28" rx="4"/><text class="tsg" x="340" y="102" text-anchor="middle">D2</text>
+  <path class="lsg dash" d="M363 97 H390"/><text class="ts" x="372" y="128">D2는 DESC_READY에서 대기</text>
+  <rect class="bdt" x="265" y="138" width="120" height="28" rx="4"/><text class="tdt" x="325" y="157" text-anchor="middle">A 128B</text>
+  <rect class="bdt" x="390" y="138" width="240" height="28" rx="4"/><text class="tdt" x="510" y="157" text-anchor="middle">B 256B (burst 2개)</text>
+  <rect class="bdt" x="635" y="138" width="60" height="28" rx="4"/><text class="tdt" x="665" y="157" text-anchor="middle">C 64B</text>
+  <path class="ln" d="M385 194 V222"/><text class="tm" x="385" y="240" text-anchor="middle">B0</text>
+  <path class="ln" d="M630 194 V222"/><text class="tm" x="630" y="240" text-anchor="middle">B1</text>
+  <path class="lsg" d="M695 186 V222" stroke-width="3"/><text class="tm" x="695" y="240" text-anchor="middle">B2</text>
+  <text class="tsg" x="705" y="210">→ irq</text>
+</svg></div>
+<figcaption>descriptor fetch(앰버)가 데이터 전송(틸)보다 앞서 달려갑니다. dma_eot는 descriptor마다 한 번씩 오지만 irq는 플래그 <code>2'b11</code>을 가진 D2(id B2)에서만 발생합니다. 길이 비율은 실제 바이트 수에 맞췄고, 시간 간격은 개념도입니다.</figcaption>
+</figure>
+<div class="col">
+<ol class="steps">
+<li><b>초기 설정 (한 번만):</b> TB가 <code>IRQ_MASK = 0x1</code>(SOT 마스크, EOT 허용), <code>CONTROL = 0x5</code>(ENABLE | HWDESC)를 씁니다.</li>
+<li><b>descriptor 작성:</b> <code>write_desc</code>로 0x1100, 0x1140, 0x1180에 D0~D2를 씁니다. D2만 flags=<code>2'b11</code>.</li>
+<li><b>시작:</b> <code>start_sg(0x1100)</code>이 SG_ADDRESS(0x47C)에 0x1100, TRANSFER_SUBMIT(0x408)에 1을 씁니다.</li>
+<li><b>요청 진입:</b> regmap_request가 요청을 내보내고, <code>ctrl_hwdesc=1</code>이라 <code>dma_sg_in_req_valid</code>로 dmac_sg의 addr FIFO에 들어갑니다.</li>
+<li><b>Fetch:</b> FSM이 <code>m_sg_axi</code>로 AR 1번(araddr=0x1100, arlen=5), R 6 beat를 받아 필드를 채우고 DESC_READY로 갑니다.</li>
+<li><b>전달:</b> splitter가 필드는 desc FIFO(→ MUX → request_arb)로, id B0와 플래그는 id FIFO로 보냅니다. FSM은 곧바로 0x1140의 D1을 읽으러 갑니다.</li>
+<li><b>데이터 이동:</b> request_arb가 0x11000에서 128B(16 beat, burst 1개)를 읽어 burst_memory를 거쳐 0x21000에 씁니다. B 응답까지 받으면 <code>dma_eot</code>.</li>
+<li><b>완료:</b> dma_eot마다 id FIFO에서 1개를 꺼냅니다. B2를 꺼낼 때 EOT 플래그가 1이므로 <code>req_eot</code> → IRQ_PENDING[1] → <code>irq</code>. TB는 <code>wait_irq</code> 후 IRQ_PENDING을 읽어 그대로 써서 W1C로 지우고, DESCRIPTOR_ID가 0xB2인지 확인합니다.</li>
+</ol>
+</div>
+</section>
+
+<section id="reg">
+<h2><span class="n">09</span>SG에 필요한 레지스터</h2>
+<div class="col"><p>RTL의 <code>up_waddr</code>는 32비트 워드 주소입니다. TB와 SFR 문서의 바이트 주소는 ×4 한 값입니다. 이름은 TB의 <code>REG_*</code> 상수를 따랐습니다.</p></div>
+<div class="tbl"><table>
+<thead><tr><th>바이트 주소</th><th>RTL (워드)</th><th>이름</th><th>이 레포에서</th></tr></thead>
+<tbody>
+<tr><td class="m2">0x080</td><td class="m2">9'h020</td><td>IRQ_MASK</td><td>bit0 SOT, bit1 EOT. 1 = 마스크. 리셋값 0x3 (둘 다 막힘), TB는 0x1로 EOT만 허용</td></tr>
+<tr><td class="m2">0x084</td><td class="m2">9'h021</td><td>IRQ_PENDING</td><td>마스크 통과한 인터럽트. W1C</td></tr>
+<tr><td class="m2">0x088</td><td class="m2">9'h022</td><td>IRQ_SOURCE</td><td>마스크와 무관한 원래 소스</td></tr>
+<tr><td class="m2">0x400</td><td class="m2">9'h100</td><td>CONTROL</td><td>bit0 ENABLE, bit1 PAUSE, <span class="sg">bit2 HWDESC</span>. bit3 FRAMELOCK은 마스크되어 최대 0x7</td></tr>
+<tr><td class="m2">0x408</td><td class="m2">9'h102</td><td>TRANSFER_SUBMIT</td><td>1을 쓰면 체인 시작</td></tr>
+<tr><td class="m2">0x428</td><td class="m2">9'h10a</td><td>TRANSFER_DONE</td><td>transfer id별 완료 비트맵</td></tr>
+<tr><td class="m2">0x454</td><td class="m2">9'h115</td><td><span class="sg">DESCRIPTOR_ID</span></td><td>완료된 descriptor의 id (읽기 전용)</td></tr>
+<tr><td class="m2">0x47C</td><td class="m2">9'h11f</td><td><span class="sg">SG_ADDRESS</span></td><td>첫 descriptor 주소. 하위 3비트 0 고정</td></tr>
+<tr><td class="m2">0x4BC</td><td class="m2">9'h12f</td><td>SG_ADDRESS_HIGH</td><td>ADDR_WIDTH=32라 항상 0</td></tr>
+</tbody></table></div>
+<div class="col"><p class="note">SG 모드에서는 DEST_ADDRESS(0x410), SRC_ADDRESS(0x414), X_LENGTH(0x418) 같은 일반 전송 레지스터가 엔진에 쓰이지 않습니다. MUX가 descriptor 쪽을 고르기 때문입니다.</p></div>
+</section>
+
+<section id="read">
+<h2><span class="n">10</span>읽는 순서와 SOR 연결</h2>
+<div class="col">
+<h3>읽는 순서</h3>
+<ol class="steps">
+<li><code>rtl/sg_dma/sgdma_top.v</code>의 파라미터 블록. 어떤 <code>generate</code>가 살아 있는지 먼저 정합니다 (3장 표).</li>
+<li><code>dmac_sg.v</code> 전체. 독립적이고 짧아서 SG 개념을 RTL로 확인하기 가장 좋습니다. FSM → 필드 <code>case</code>문 → FIFO 3개 → splitter 순으로.</li>
+<li><code>axi_dmac_transfer.v</code>의 <code>i_dmac_sg</code> 인스턴스와 그 아래 <code>ctrl_hwdesc ?</code> MUX (<code>DMA_2D_TRANSFER</code>의 <code>else</code> 블록).</li>
+<li><code>axi_dmac_regmap.v</code>, <code>axi_dmac_regmap_request.v</code>에서 CONTROL, SUBMIT, SG_ADDRESS, IRQ 처리.</li>
+<li><code>request_arb.v</code>는 1200줄이라 전부 읽지 말고 MM 쪽 인스턴스만 따라갑니다. <code>i_src_dma_mm</code> → <code>address_generator.v</code> → <code>i_store_and_forward</code> → <code>i_dest_dma_mm</code>.</li>
+<li>이 순서를 따라가면서 <code>tb_sg_dma.sv</code>의 SAN-004(단일), SAN-005(체인) 파형을 함께 보면 신호 이름이 바로 연결됩니다.</li>
+</ol>
+<p>단순 DMA를 직접 만들어보는 중이라면 5번이 그 설계(req_gen → FIFO → rd/wr master)와 거의 같은 구조라 비교하면서 보기 좋습니다.</p>
+
+<h3>RTL 위치와 SOR 요구사항</h3>
+<p>SOR의 descriptor·에러 요구사항이 RTL의 어느 줄에서 나오는지 연결해 두었습니다. 시나리오를 구체화할 때 어디를 probe할지 정하는 데 씁니다.</p>
+<div class="grid2">
+  <div class="card"><h4>AR 고정값 <span class="id">DESC-001</span></h4><p><code>dmac_sg.v</code>의 <code>assign m_axi_arlen = 'h5</code>, <code>arsize = 3'h3</code>, <code>arburst = 2'h1</code>.</p></div>
+  <div class="card"><h4>필드 배치 <span class="id">DESC-002, 007</span></h4><p><code>case (hwdesc_counter)</code> 블록. x_length는 <code>rdata[63:32]</code>를 24비트 레지스터에 넣어 상위 8비트가 잘립니다.</p></div>
+  <div class="card"><h4>LAST / next <span class="id">DESC-003, 004</span></h4><p>FSM의 <code>STATE_DESC_READY</code> 분기 (<code>hwdesc_flags &amp; MASK_LAST_HWDESC</code>).</p></div>
+  <div class="card"><h4>IRQ 조건 <span class="id">DESC-005</span></h4><p><code>axi_dmac_transfer.v</code>의 <code>req_eot = dma_eot &amp; dma_sg_hwdesc_eot</code>.</p></div>
+  <div class="card"><h4>DESCRIPTOR_ID <span class="id">DESC-006</span></h4><p><code>i_fifo</code>의 <code>m_axis_data</code>. 비어 있으면 마지막으로 꺼낸 값을 유지합니다.</p></div>
+  <div class="card"><h4>8B 정렬 <span class="id">DESC-008</span></h4><p>주소 레지스터 선언 범위 <code>[...:BYTES_PER_BEAT_WIDTH_SG]</code>, araddr의 <code>{..., 3'b0}</code>.</p></div>
+  <div class="card"><h4>prefetch <span class="id">DESC-009</span></h4><p>DESC_READY → SEND_ADDR 바로 복귀 + <code>i_fifo</code> 깊이 4가 한도.</p></div>
+  <div class="card"><h4>fetch 에러 <span class="id">ERR-002</span></h4><p><code>m_axi_rresp</code> 미사용. FSM은 <code>rvalid</code>, <code>rlast</code>만 봅니다.</p></div>
+  <div class="card"><h4>자기 자신을 가리키는 next <span class="id">ERR-004</span></h4><p>FSM 탈출 경로는 LAST와 <code>sg_enable=0</code>뿐입니다. CONTROL.ENABLE=0이 reset_manager를 거쳐 <code>sg_enable</code>을 내리는지가 확인 지점입니다.</p></div>
+</div>
+</div>
+</section>
+
+<footer>기준: sharon7153/pro-a-sgdma 커밋 0b0234b. ADI 코드는 hdl_2026_r1(b62abeff)에서 import_adi_dmac.sh로 복사되었고, burst_memory 패치 1건 외에는 원본과 같습니다.</footer>
+</div>
+
+</body></html>
