@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="dump/tb_sg_dma_snap.wdb" id="1">
+         <top_modules>
+            <top_module name="tb_mem_pkg" />
+            <top_module name="tb_sg_dma" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="3,830.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="4,708.001 ns"></ZoomEndTime>
+      <Cursor1Time time="4,730.000 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="108"></NameColumnWidth>
+      <ValueColumnWidth column_width="76"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="16" />
+   <wvobject type="logic" fp_name="/tb_sg_dma/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_sg_dma/resetn">
+      <obj_property name="ElementShortName">resetn</obj_property>
+      <obj_property name="ObjectShortName">resetn</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_sg_dma/irq">
+      <obj_property name="ElementShortName">irq</obj_property>
+      <obj_property name="ObjectShortName">irq</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_sg_dma/m_sg_axi_arvalid">
+      <obj_property name="ElementShortName">m_sg_axi_arvalid</obj_property>
+      <obj_property name="ObjectShortName">m_sg_axi_arvalid</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_sg_dma/m_sg_axi_araddr">
+      <obj_property name="ElementShortName">m_sg_axi_araddr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">m_sg_axi_araddr[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_sg_dma/m_sg_axi_rvalid">
+      <obj_property name="ElementShortName">m_sg_axi_rvalid</obj_property>
+      <obj_property name="ObjectShortName">m_sg_axi_rvalid</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_sg_dma/m_sg_axi_rdata">
+      <obj_property name="ElementShortName">m_sg_axi_rdata[63:0]</obj_property>
+      <obj_property name="ObjectShortName">m_sg_axi_rdata[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_sg_dma/m_src_axi_arvalid">
+      <obj_property name="ElementShortName">m_src_axi_arvalid</obj_property>
+      <obj_property name="ObjectShortName">m_src_axi_arvalid</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_sg_dma/m_src_axi_araddr">
+      <obj_property name="ElementShortName">m_src_axi_araddr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">m_src_axi_araddr[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_sg_dma/m_src_axi_arlen">
+      <obj_property name="ElementShortName">m_src_axi_arlen[7:0]</obj_property>
+      <obj_property name="ObjectShortName">m_src_axi_arlen[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_sg_dma/m_dest_axi_awvalid">
+      <obj_property name="ElementShortName">m_dest_axi_awvalid</obj_property>
+      <obj_property name="ObjectShortName">m_dest_axi_awvalid</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_sg_dma/m_dest_axi_awaddr">
+      <obj_property name="ElementShortName">m_dest_axi_awaddr[31:0]</obj_property>
+      <obj_property name="ObjectShortName">m_dest_axi_awaddr[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_sg_dma/m_dest_axi_awlen">
+      <obj_property name="ElementShortName">m_dest_axi_awlen[7:0]</obj_property>
+      <obj_property name="ObjectShortName">m_dest_axi_awlen[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_sg_dma/s_axi_awvalid">
+      <obj_property name="ElementShortName">s_axi_awvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axi_awvalid</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_sg_dma/s_axi_awaddr">
+      <obj_property name="ElementShortName">s_axi_awaddr[10:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axi_awaddr[10:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_sg_dma/s_axi_wdata">
+      <obj_property name="ElementShortName">s_axi_wdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axi_wdata[31:0]</obj_property>
+   </wvobject>
+</wave_config>
